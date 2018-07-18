@@ -3,20 +3,19 @@
 
 #include <stack>
 #include <vector>
-#include "include/sl_op.h"
-#include "include/sl_entry.h"
+
+class Entry;
 
 class SlChecker {
 public:
   SlChecker();
   ~SlChecker();
 
-  int Init(std::vector<SlOp> ops);
+  int Init(std::vector<SlOp*> ops);
   bool Check();
 
 private:
-  Entry *head_;
-  int entry_cnt_;
+  Entry head_;
   std::stack<Entry*> calls_;
 
 };

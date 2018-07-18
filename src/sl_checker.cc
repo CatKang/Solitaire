@@ -1,3 +1,4 @@
+#include "src/sl_entry.h"
 #include "src/sl_checker.h"
 
 SlChecker::SlChecker()
@@ -5,21 +6,25 @@ SlChecker::SlChecker()
   }
 
 SlChecker::~SlChecker() {
-  Entry *tmp;
-  while (head_) {
-    tmp = head_->Lift();
+  Entry *cur = head_.Next(), *tmp = NULL;
+  while (cur) {
+    tmp = cur;
+    cur = cur->Next();
     delete tmp;
   }
 }
 
-int SlChecker::Init(std::vector<SlOp> ops) {
-  for (SlOp op : ops) {
-    head_->Link(op);
+int SlChecker::Init(std::vector<SlOp*> ops) {
+  SlEntry *tail = &head_;
+  for (SlOp *op : ops) {
+    SlEntry *entry = new SlEntry(op);
+    tail->Link(entry);
+    // TODO set match
   }
 }
 
 bool SlChecker::Check() {
-  SlEntry *entry = head_->Next();
+  SlEntry *entry = head_.Next();
   while (entry) {
     if (entry->IsCall()) {
       // A call entry 
@@ -27,7 +32,7 @@ bool SlChecker::Check() {
       if (is_linearized) {
         entry->Lift();
         calls_.push(entry);
-        entry  = head_->Next();
+        entry  = head_.Next();
       } else {
         entry = entry->Next();
       }
