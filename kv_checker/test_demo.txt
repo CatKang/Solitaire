@@ -1,0 +1,8 @@
+:process 1, :type :invoke, :set, :key "x", :value "0"
+:process 2, :type :invoke, :set, :key "x", :value "1"
+:process 1, :type :ok, :set, :key "x", :value "0"
+:process 3, :type :invoke, :get, :key "x", :value nil
+:process 4, :type :invoke, :get, :key "x", :value nil
+:process 3, :type :ok, :get, :key "x", :value "1"
+:process 4, :type :ok, :get, :key "x", :value "0"
+:process 2, :type :ok, :set, :key "x", :value "1"
