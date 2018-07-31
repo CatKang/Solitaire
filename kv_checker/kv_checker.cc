@@ -22,14 +22,14 @@ int main(int argc, char **argv) {
   }
 
   std::string line;
-  std::vector<SlOp*> ops;
+  std::map<int, SlOp*> ops;
   int id = 1;
   while (getline(fin, line)) {
     if (line.empty()) {
       continue;
     }
     SlKvOp *op = new SlKvOp(id++, line);
-    ops.push_back(op);
+    ops.insert(std::pair<int, SlOp*>(op->id(), op));
   }
 
   SlKvOpSm sm;
@@ -40,8 +40,8 @@ int main(int argc, char **argv) {
 
   printf("Linearizability: %s\n", checker.Check() ? "true" : "false");
   
-  for (SlOp* op : ops) {
-    delete op;
+  for (auto& op : ops) {
+    delete op.second;
   }
 
   return 0;

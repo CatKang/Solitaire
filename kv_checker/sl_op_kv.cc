@@ -28,9 +28,9 @@ static std::string Trim(const std::string& str, char target) {
 
 SlKvOp::SlKvOp(int id, const std::string& history_line) {
   std::vector<std::string> options, elems;
-  Split(history_line, ',', &options);
+  std::string line = Trim(Trim(history_line, '{'), '}');
+  Split(line, ',', &options);
  
-  id_ = id;
   for (std::string opt: options) {
     Split(opt, ' ', &elems);
     int i = 0;
@@ -38,8 +38,11 @@ SlKvOp::SlKvOp(int id, const std::string& history_line) {
       i++;
     }
 
+    key_ = "default";
     std::string key = elems[i];
-    if (key == ":process") {
+    if (key == ":index") {
+      id_ = stoi(elems[i+1]) + 1;
+    } else if (key == ":process") {
       invoker_ = elems[i + 1];
     } else if (key == ":type") {
       // Invoke or return
@@ -47,16 +50,28 @@ SlKvOp::SlKvOp(int id, const std::string& history_line) {
       if (elems[i + 1] == ":ok") {
         is_call_ = false;
       } 
-    } else if (key == ":get") {
-      op_type_ = kGet;
-    } else if (key == ":set") {
-      op_type_ = kSet;
+    } else if (key == ":f") {
+      std::string stype = elems[i + 1];
+      if (stype == ":write") {
+        op_type_ = kSet;
+      } else if (stype == ":read") {
+        op_type_ = kGet;
+      } else {
+        printf("unknown op type: %s\n", stype.c_str());
+        exit(-1);
+      }
     } else if (key == ":key") {
       key_ = Trim(elems[i + 1], '"');
     } else if (key == ":value") {
       value_ = Trim(elems[i + 1], '"');
+      if (value_ == "nil") {
+        value_ = "";
+      }
+    } else if (key == ":time") {
+      // Skip
     } else {
-      printf("unknown option\n");
+      printf("unknown option: %s\n", key.c_str());
+      exit(-1);
     }
   }
 

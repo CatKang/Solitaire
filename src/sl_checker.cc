@@ -15,15 +15,16 @@ SlChecker::~SlChecker() {
   }
 }
 
-bool SlChecker::Init(const std::vector<SlOp*> ops, SlOpSm* sm) {
+bool SlChecker::Init(const std::map<int, SlOp*> ops, SlOpSm* sm) {
   SlEntry *tail = &head_;
   std::unordered_map<std::string, SlEntry*> no_rets;
 
   printf("\nChecker Init------------------------\n");
   // Init Entry list
-  for (SlOp *op : ops) {
-    printf("Link op: ");
+  for (auto& op_pair : ops) {
+    SlOp* op = op_pair.second;
 
+    printf("Link op: ");
     SlEntry *entry = new SlEntry(op);
     tail->Link(entry);
     printf("Link Entry: %d\n", entry->Id());

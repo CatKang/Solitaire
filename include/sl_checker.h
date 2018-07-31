@@ -1,8 +1,8 @@
 #ifndef INCLUDE_SL_CHECKER_H_
 #define INCLUDE_SL_CHECKER_H_
 
+#include <map>
 #include <stack>
-#include <vector>
 #include <utility>
 #include "include/sl_entry.h"
 
@@ -11,7 +11,7 @@ public:
   SlChecker();
   ~SlChecker();
 
-  bool Init(std::vector<SlOp*> ops, SlOpSm* sm);
+  bool Init(std::map<int, SlOp*> ops, SlOpSm* sm);
   bool Check();
 
 private:
