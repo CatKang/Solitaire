@@ -16,22 +16,30 @@ public:
   virtual ~SlKvOpSm() {}
   virtual SlOpSm* Snap() const {
     SlKvOpSm* snap = new SlKvOpSm();
-    snap->kv_pair = kv_pair;
+    snap->kv_pair_ = kv_pair_;
     return snap;
   }
 
   virtual void Recover(const SlOpSm* snap) {
     const SlKvOpSm* s = dynamic_cast<const SlKvOpSm*>(snap);
-    kv_pair = s->kv_pair;
+    kv_pair_ = s->kv_pair_;
   }
 
-  virtual void Dump() {
-    for(auto& item : kv_pair) {
+  virtual void Dump() const {
+    for(auto& item : kv_pair_) {
       printf("%s => %s\n", item.first.c_str(), item.second.c_str());
     }
   }
 
-  std::unordered_map<std::string, std::string> kv_pair;
+  virtual bool Equal(const SlOpSm *sm) const {
+    const SlKvOpSm* s = dynamic_cast<const SlKvOpSm*>(sm);
+    return kv_pair_ == s->kv_pair_;
+  
+  }
+
+private:
+  friend class SlKvOp;
+  std::unordered_map<std::string, std::string> kv_pair_;
 };
 
 class SlKvOp : public SlOp {
@@ -48,7 +56,7 @@ public:
     key_(k),
     value_(v) {}
 
-  explicit SlKvOp(int id, const std::string& hline);
+  bool Init(const std::string& hline);
 
   virtual ~SlKvOp() {}
 
@@ -56,7 +64,7 @@ public:
 
   virtual void Dump() const;
 
-  virtual bool Equal(SlOp* op) const;
+  virtual bool Equal(const SlOp* op) const;
 
 private:
   SlKvOpType op_type_;

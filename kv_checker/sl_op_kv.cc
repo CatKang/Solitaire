@@ -26,7 +26,7 @@ static std::string Trim(const std::string& str, char target) {
   return str.substr(begin, end - begin + 1);
 }
 
-SlKvOp::SlKvOp(int id, const std::string& history_line) {
+bool SlKvOp::Init(const std::string& history_line) {
   std::vector<std::string> options, elems;
   std::string line = Trim(Trim(history_line, '{'), '}');
   Split(line, ',', &options);
@@ -41,15 +41,22 @@ SlKvOp::SlKvOp(int id, const std::string& history_line) {
     key_ = "default";
     std::string key = elems[i];
     if (key == ":index") {
-      id_ = stoi(elems[i+1]) + 1;
+      id_ = stoi(elems[i+1]);
     } else if (key == ":process") {
       invoker_ = elems[i + 1];
     } else if (key == ":type") {
       // Invoke or return
-      is_call_ = true;
-      if (elems[i + 1] == ":ok") {
+      if (elems[i + 1] == ":invoke") {
+        is_call_ = true;
+      } else if (elems[i + 1] == ":info") {
+        return false;
+      } else if (elems[i + 1] == ":ok") {
         is_call_ = false;
-      } 
+        is_ok_ = true;
+      } else if (elems[i + 1] == ":fail") {
+        is_call_ = false;
+        is_ok_ = false;
+      }
     } else if (key == ":f") {
       std::string stype = elems[i + 1];
       if (stype == ":write") {
@@ -67,7 +74,7 @@ SlKvOp::SlKvOp(int id, const std::string& history_line) {
       if (value_ == "nil") {
         value_ = "";
       }
-    } else if (key == ":time") {
+    } else if (key == ":time" || key == ":error") {
       // Skip
     } else {
       printf("unknown option: %s\n", key.c_str());
@@ -76,6 +83,7 @@ SlKvOp::SlKvOp(int id, const std::string& history_line) {
   }
 
   Dump();
+  return true;
 }
 
 SlOp* SlKvOp::Apply(SlOpSm *sm) {
@@ -86,13 +94,13 @@ SlOp* SlKvOp::Apply(SlOpSm *sm) {
 
   SlKvOpSm *kv_sm = dynamic_cast<SlKvOpSm*>(sm);
   if (kSet == op_type_) {
-    kv_sm->kv_pair[key_] = value_;
+    kv_sm->kv_pair_[key_] = value_;
     return new SlKvOp(-1, invoker_, false, op_type_, key_, value_);
   } else {
-    if (kv_sm->kv_pair.find(key_) == kv_sm->kv_pair.end()) {
+    if (kv_sm->kv_pair_.find(key_) == kv_sm->kv_pair_.end()) {
       return new SlKvOp();
     }
-    return new SlKvOp(-1, invoker_, false, op_type_, key_, kv_sm->kv_pair[key_]);
+    return new SlKvOp(-1, invoker_, false, op_type_, key_, kv_sm->kv_pair_[key_]);
   }
 }
 
@@ -102,8 +110,8 @@ void SlKvOp::Dump() const {
       key_.c_str(), value_.c_str());
 }
 
-bool SlKvOp::Equal(SlOp* op) const {
-  SlKvOp* kv_op = dynamic_cast<SlKvOp*>(op);
+bool SlKvOp::Equal(const SlOp* op) const {
+  const SlKvOp* kv_op = dynamic_cast<const SlKvOp*>(op);
   return op_type_ == kv_op->op_type_
     && key_ == kv_op->key_
     && value_ == kv_op->value_;

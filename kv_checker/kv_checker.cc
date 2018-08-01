@@ -23,12 +23,15 @@ int main(int argc, char **argv) {
 
   std::string line;
   std::map<int, SlOp*> ops;
-  int id = 1;
   while (getline(fin, line)) {
     if (line.empty()) {
       continue;
     }
-    SlKvOp *op = new SlKvOp(id++, line);
+    SlKvOp *op = new SlKvOp();
+    if(!op->Init(line)) {
+      // Skip
+      continue;
+    }
     ops.insert(std::pair<int, SlOp*>(op->id(), op));
   }
 
@@ -36,6 +39,7 @@ int main(int argc, char **argv) {
   SlChecker checker;
   if (!checker.Init(ops, &sm)) {
     printf("checker init failed!\n");
+    return -1;
   }
 
   printf("Linearizability: %s\n", checker.Check() ? "true" : "false");

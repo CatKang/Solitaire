@@ -4,7 +4,8 @@
 class SlEntry {
 public:
   SlEntry(SlOp* op)
-    : match_(NULL),
+    : call_id_(-1),
+    match_(NULL),
     next_(NULL),
     prev_(NULL),
     op_(op) {
@@ -13,11 +14,12 @@ public:
   ~SlEntry() {
   }
 
-  int Id() const {
-    if (!op_) {
-      return -1;
-    }
-    return op_->id();
+  int call_id() const {
+    return call_id_;
+  }
+
+  void SetCallId(int id) {
+    call_id_ = id;
   }
 
   bool IsCall() const {
@@ -57,7 +59,9 @@ public:
 
   bool Apply(SlOpSm *sm) {
     SlOp *res_op = op_->Apply(sm);
-    bool is_linearized = match_->IsFake() || match_->op_->Equal(res_op);
+    bool is_linearized = match_->IsFake()  // Unfinished call
+      || !match_->op_->is_ok()  // Timeout call
+      || match_->op_->Equal(res_op);
     delete res_op;
     return is_linearized;
   }
@@ -67,15 +71,19 @@ public:
   }
 
   void Dump() {
-    printf("Dump entry %d\n", Id());
-    printf("Match: %d, Next: %d, Prev: %d\n",
-        match_ && !match_->IsFake() ? match_->Id() : -1,
-        next_ && !next_->IsFake() ? next_->Id() : -1,
-        prev_ && !prev_->IsFake() ? prev_->Id() : -1);
-    op_->Dump();
+    printf("Dump entry %d Match: %d, Next: %d, Prev: %d\n",
+        call_id_, match_ && !match_->IsFake() ? match_->call_id() : -1,
+        next_ && !next_->IsFake() ? next_->call_id() : -1,
+        prev_ && !prev_->IsFake() ? prev_->call_id() : -1);
+    if (op_) {
+      op_->Dump();
+    } else {
+      printf("Fake Entry\n");
+    }
   }
 
 private:
+  int call_id_;
   SlEntry *match_;
   SlEntry *next_;
   SlEntry *prev_;
