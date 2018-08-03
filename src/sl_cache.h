@@ -8,6 +8,8 @@
 // TODO LRU
 class SlCache {
 public:
+  ~SlCache();
+
   bool TryInsert(const SlBitset& bitset, const SlOpSm* sm);
 
 private:

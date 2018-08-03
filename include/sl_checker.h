@@ -2,7 +2,8 @@
 #define INCLUDE_SL_CHECKER_H_
 
 #include <map>
-#include <stack>
+#include <deque>
+#include <vector>
 #include <utility>
 #include "include/sl_entry.h"
 
@@ -16,9 +17,12 @@ public:
   bool Init(std::map<int, SlOp*> ops, SlOpSm* sm);
   bool Check();
 
+  void DumpResult() const;
+
 private:
   SlEntry head_;
-  std::stack<std::pair<SlEntry*, SlOpSm*>> calls_;
+  std::deque<std::pair<SlEntry*, SlOpSm*>> calls_;
+  std::vector<int> longest_;
   SlOpSm *sm_;
   SlCache* cache_;
   SlBitset* bitset_;

@@ -36,10 +36,15 @@ public:
 
   void Lift() {
     prev_->next_ = next_;
-    next_->prev_ = prev_;
-    match_->prev_->next_ = match_->next_;
-    if (match_->next_) {
-      match_->next_->prev_ = match_->prev_;
+    if (next_) {
+      next_->prev_ = prev_;
+    }
+    
+    if (match_) {
+      match_->prev_->next_ = match_->next_;
+      if (match_->next_) {
+        match_->next_->prev_ = match_->prev_;
+      }
     }
   }
 
@@ -60,7 +65,7 @@ public:
   bool Apply(SlOpSm *sm) {
     SlOp *res_op = op_->Apply(sm);
     bool is_linearized = match_->IsFake()  // Unfinished call
-      || !match_->op_->is_ok()  // Timeout call
+      || !match_->op_->is_ok()   // Fail or Timeout
       || match_->op_->Equal(res_op);
     delete res_op;
     return is_linearized;
@@ -72,9 +77,9 @@ public:
 
   void Dump() {
     printf("Dump entry %d Match: %d, Next: %d, Prev: %d\n",
-        call_id_, match_ && !match_->IsFake() ? match_->call_id() : -1,
-        next_ && !next_->IsFake() ? next_->call_id() : -1,
-        prev_ && !prev_->IsFake() ? prev_->call_id() : -1);
+        call_id_, match_ ? match_->call_id() : -1,
+        next_ ? next_->call_id() : -1,
+        prev_ ? prev_->call_id() : -1);
     if (op_) {
       op_->Dump();
     } else {

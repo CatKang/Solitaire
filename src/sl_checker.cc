@@ -1,3 +1,4 @@
+#include <vector>
 #include <unordered_map>
 #include "include/sl_entry.h"
 #include "include/sl_checker.h"
@@ -6,8 +7,7 @@
 
 SlChecker::SlChecker()
   : head_(NULL) {
-    bitset_ = new SlBitset();
-    cache_ = new SlCache();
+    bitset_ = new SlBitset(); cache_ = new SlCache();
   }
 
 SlChecker::~SlChecker() {
@@ -17,6 +17,10 @@ SlChecker::~SlChecker() {
     cur = cur->Next();
     delete tmp;
   }
+  for (auto& c : calls_) {
+    delete c.first;
+    delete c.second;
+  }
   delete cache_;
   delete bitset_;
 }
@@ -24,6 +28,7 @@ SlChecker::~SlChecker() {
 bool SlChecker::Init(const std::map<int, SlOp*> ops, SlOpSm* sm) {
   SlEntry *tail = &head_;
   std::unordered_map<std::string, SlEntry*> no_rets;
+  std::vector<SlEntry*> fails;
 
   printf("\nChecker Init------------------------\n");
   // Init Entry list
@@ -32,8 +37,6 @@ bool SlChecker::Init(const std::map<int, SlOp*> ops, SlOpSm* sm) {
     SlOp* op = op_pair.second;
 
     SlEntry *entry = new SlEntry(op);
-    tail->Link(entry);
-    tail = tail->Next();
     
     // Set match entry
     if (op->is_call()) {
@@ -43,31 +46,54 @@ bool SlChecker::Init(const std::map<int, SlOp*> ops, SlOpSm* sm) {
       }
       entry->SetCallId(call_id++);
       no_rets[op->invoker()] = entry;
+      tail->Link(entry);
+      tail = tail->Next();
     } else {
       if (no_rets.find(op->invoker()) == no_rets.end()) {
         printf("call in waiting not found ----------------------------\n");
         return false;
       }
       SlEntry *invoke_entry = no_rets[op->invoker()];
-      invoke_entry->SetMatch(entry);
-      entry->SetCallId(invoke_entry->call_id());
+      if (op->is_timeout()) {
+        fails.push_back(invoke_entry);
+      } else if (op->is_ok()) {
+        tail->Link(entry);
+        tail = tail->Next();
+        invoke_entry->SetMatch(entry);
+        entry->SetCallId(invoke_entry->call_id());
+      } else {
+        invoke_entry->Lift();
+        delete entry;
+        delete invoke_entry;
+      }
       no_rets.erase(op->invoker());
+
     }
-    entry->Dump();
-    printf("\n");
+#ifdef DEBUG
+    if (!op->is_fail()) {
+      entry->Dump();
+      printf("\n");
+    }
+#endif
   }
 
-  // Add return entry for timeout op
+  // Add return entry for no return or timeout op
   for (auto& wait : no_rets) {
+    fails.push_back(wait.second);
+  }
+  for (auto& fail : fails) {
     SlEntry *ret_entry = new SlEntry(NULL);
     tail->Link(ret_entry);
     tail = tail->Next();
     
-    wait.second->SetMatch(ret_entry);
-    ret_entry->SetCallId(wait.second->call_id());
+    fail->SetMatch(ret_entry);
+    ret_entry->SetCallId(fail->call_id());
+#ifdef DEBUG
     ret_entry->Dump();
     printf("\n");
+#endif
   }
+
 
   // Init StateMachine
   sm_ = sm;
@@ -81,8 +107,11 @@ bool SlChecker::Init(const std::map<int, SlOp*> ops, SlOpSm* sm) {
 bool SlChecker::Check() {
   printf("\nChecker Check------------------------\n");
   SlEntry *entry = head_.Next();
+  longest_.clear();
   while (entry) {
+#ifdef DEBUG
     entry->Dump();
+#endif
     if (entry->IsCall()) {
       // A call entry 
       SlOpSm *snap_sm = sm_->Snap();
@@ -94,9 +123,17 @@ bool SlChecker::Check() {
 
       if (pick) {
         entry->Lift();
-        calls_.push(std::pair<SlEntry*, SlOpSm*>(entry, snap_sm));
+        calls_.push_back(std::pair<SlEntry*, SlOpSm*>(entry, snap_sm));
+        if (calls_.size() > longest_.size()) {
+          longest_.clear();
+          for(const auto& c : calls_) {
+            longest_.push_back(c.first->call_id());
+          }   
+        }
+#ifdef DEBUG
         printf("Lift: %d\n", entry->call_id());
         snap_sm->Dump();
+#endif
 
         entry  = head_.Next();
       } else {
@@ -104,8 +141,10 @@ bool SlChecker::Check() {
         bitset_->unset(entry->call_id());
         sm_->Recover(snap_sm);
         delete snap_sm;
+#ifdef DEBUG
         printf("Skip: %d, since: %s\n", entry->call_id(),
             is_linearized ? "Cache hit" : "Not Linearized");
+#endif
         entry = entry->Next();
       }
 
@@ -116,21 +155,32 @@ bool SlChecker::Check() {
         printf("-----------------------------\n");
         return false;
       }
-      std::pair<SlEntry*, SlOpSm*> b_pair= calls_.top();
-      calls_.pop();
+      std::pair<SlEntry*, SlOpSm*> b_pair= calls_.back();
+      calls_.pop_back();
       b_pair.first->Unlift();
       bitset_->unset(b_pair.first->call_id());
       entry = b_pair.first->Next();
       sm_->Recover(b_pair.second);
+#ifdef DEBUG
       printf("Unlift: %d\n", b_pair.first->call_id());
       b_pair.second->Dump();
+#endif
       delete b_pair.second;
     }
+#ifdef DEBUG
     printf("\n");
+#endif
   }
   printf("-----------------------------\n");
 
   return true;
+}
+
+void SlChecker::DumpResult() const {
+  for (int i : longest_) {
+    printf("%d, ", i);
+  }
+  printf("\n");
 }
 
 

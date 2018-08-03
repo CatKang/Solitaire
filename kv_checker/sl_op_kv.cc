@@ -48,14 +48,15 @@ bool SlKvOp::Init(const std::string& history_line) {
       // Invoke or return
       if (elems[i + 1] == ":invoke") {
         is_call_ = true;
-      } else if (elems[i + 1] == ":info") {
-        return false;
       } else if (elems[i + 1] == ":ok") {
         is_call_ = false;
-        is_ok_ = true;
+        ret_ = kSucc;
       } else if (elems[i + 1] == ":fail") {
         is_call_ = false;
-        is_ok_ = false;
+        ret_ = kFail;
+      } else {
+        is_call_ = false;
+        ret_ = kTimeout;
       }
     } else if (key == ":f") {
       std::string stype = elems[i + 1];
@@ -65,7 +66,7 @@ bool SlKvOp::Init(const std::string& history_line) {
         op_type_ = kGet;
       } else {
         printf("unknown op type: %s\n", stype.c_str());
-        exit(-1);
+        return false;
       }
     } else if (key == ":key") {
       key_ = Trim(elems[i + 1], '"');
@@ -82,7 +83,7 @@ bool SlKvOp::Init(const std::string& history_line) {
     }
   }
 
-  Dump();
+ // Dump();
   return true;
 }
 
@@ -98,7 +99,7 @@ SlOp* SlKvOp::Apply(SlOpSm *sm) {
     return new SlKvOp(-1, invoker_, false, op_type_, key_, value_);
   } else {
     if (kv_sm->kv_pair_.find(key_) == kv_sm->kv_pair_.end()) {
-      return new SlKvOp();
+      return new SlKvOp(-1, invoker_, false, op_type_, key_, "0"); // Treat 0 as not found
     }
     return new SlKvOp(-1, invoker_, false, op_type_, key_, kv_sm->kv_pair_[key_]);
   }

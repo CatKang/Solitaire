@@ -42,8 +42,11 @@ int main(int argc, char **argv) {
     return -1;
   }
 
-  printf("Linearizability: %s\n", checker.Check() ? "true" : "false");
-  
+  bool is_linearizability = checker.Check();
+  printf("Linearizability: %s\n", is_linearizability ? "true" : "false");
+ 
+  checker.DumpResult();
+
   for (auto& op : ops) {
     delete op.second;
   }

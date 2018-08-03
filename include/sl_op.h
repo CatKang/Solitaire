@@ -11,13 +11,25 @@ public:
   virtual bool Equal(const SlOpSm* sm) const = 0;
 };
 
+enum RetCode {
+  kSucc = 0,
+  kFail,
+  kTimeout
+};
+
+const std::string RetStr[] = {
+  "Succ",
+  "Fail",
+  "Timeout"
+};
+
 class SlOp {
 public:
   SlOp()
-    : id_(-1), is_call_(false), is_ok_(true) {}
+    : id_(-1), is_call_(false), ret_(kSucc) {}
 
-  SlOp(int id, const std::string& who, bool call = false, bool ok = true)
-    : id_(id), invoker_(who), is_call_(call), is_ok_(ok) {}
+  SlOp(int id, const std::string& who, bool call = false, RetCode ret = kSucc)
+    : id_(id), invoker_(who), is_call_(call), ret_(ret) {}
 
   virtual ~SlOp() {}
 
@@ -27,7 +39,7 @@ public:
     // Op[id, invoker, is_call]
     printf("Op[%d, %s, %s, %s], ", id_, invoker_.c_str(),
         is_call_ ? "invoke" : "return",
-        is_ok_ ? "ok" : "failed");
+        RetStr[ret_].c_str());
   }
   
   virtual bool Equal(const SlOp* op) const = 0;
@@ -41,7 +53,15 @@ public:
   }
 
   bool is_ok() const {
-    return is_ok_;
+    return ret_ == kSucc;
+  }
+
+  bool is_fail() const {
+    return ret_ == kFail;
+  }
+
+  bool is_timeout() const {
+    return ret_ == kTimeout;
   }
   
   std::string invoker() const {
@@ -51,8 +71,8 @@ public:
 protected:
   int id_;
   std::string invoker_;
+  RetCode ret_;
   bool is_call_;
-  bool is_ok_;
 };
 
 #endif  // INCLUDE_SL_OP_H_
