@@ -22,7 +22,8 @@ public:
 private:
   SlEntry head_;
   std::deque<std::pair<SlEntry*, SlOpSm*>> calls_;
-  std::vector<int> longest_;
+  int longest_;
+  int longest_id_;
   SlOpSm *sm_;
   SlCache* cache_;
   SlBitset* bitset_;

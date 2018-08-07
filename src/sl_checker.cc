@@ -6,8 +6,9 @@
 #include "src/sl_cache.h"
 
 SlChecker::SlChecker()
-  : head_(NULL) {
-    bitset_ = new SlBitset(); cache_ = new SlCache();
+  : head_(NULL), longest_(0), longest_id_(-1) {
+    bitset_ = new SlBitset();
+    cache_ = new SlCache();
   }
 
 SlChecker::~SlChecker() {
@@ -107,7 +108,8 @@ bool SlChecker::Init(const std::map<int, SlOp*> ops, SlOpSm* sm) {
 bool SlChecker::Check() {
   printf("\nChecker Check------------------------\n");
   SlEntry *entry = head_.Next();
-  longest_.clear();
+  longest_ = 0;
+  longest_id_ = 0;
   while (entry) {
 #ifdef DEBUG
     entry->Dump();
@@ -122,14 +124,12 @@ bool SlChecker::Check() {
       }
 
       if (pick) {
-        entry->Lift();
         calls_.push_back(std::pair<SlEntry*, SlOpSm*>(entry, snap_sm));
-        if (calls_.size() > longest_.size()) {
-          longest_.clear();
-          for(const auto& c : calls_) {
-            longest_.push_back(c.first->call_id());
-          }   
+        if (calls_.size() > longest_) {
+          longest_id_ = entry->call_id();
+          longest_ = calls_.size();
         }
+        entry->Lift();
 #ifdef DEBUG
         printf("Lift: %d\n", entry->call_id());
         snap_sm->Dump();
@@ -138,7 +138,9 @@ bool SlChecker::Check() {
         entry  = head_.Next();
       } else {
         // Recover and try next
-        bitset_->unset(entry->call_id());
+        if (is_linearized) {
+          bitset_->unset(entry->call_id());
+        }
         sm_->Recover(snap_sm);
         delete snap_sm;
 #ifdef DEBUG
@@ -177,10 +179,7 @@ bool SlChecker::Check() {
 }
 
 void SlChecker::DumpResult() const {
-  for (int i : longest_) {
-    printf("%d, ", i);
-  }
-  printf("\n");
+  printf("longest call cnt: %d, call id: %d\n", longest_, longest_id_);
 }
 
 

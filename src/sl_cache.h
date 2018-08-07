@@ -13,7 +13,7 @@ public:
   bool TryInsert(const SlBitset& bitset, const SlOpSm* sm);
 
 private:
-  std::unordered_map<std::string, std::deque<const SlOpSm*>> histories_;
+  std::unordered_map<SlBitset, std::deque<const SlOpSm*>, SlBitsetHasher> histories_;
 };
 
 #endif  // SRC_SL_CACHE_H_
