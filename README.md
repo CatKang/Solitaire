@@ -15,3 +15,10 @@ g++ -std=c++11 -O2 kv_checker.cc sl_op_kv.cc ../src/sl_checker.cc ../src/sl_cach
 kv_checker test/test_demo.txt
 
 ```
+
+## Efficiency
+![Compare with Jepsen](http://catkang.github.io/assets/img/test_linearizability/Linearizability_8.png)
+
+## Comming Soon
+- Optimize bitset hash
+- Support Multi-thread
