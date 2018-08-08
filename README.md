@@ -12,6 +12,6 @@ cd kv_checker
 g++ -std=c++11 -O2 kv_checker.cc sl_op_kv.cc ../src/sl_checker.cc ../src/sl_cache.cc -I.. -o kv_checker
 
 # Run
-kv_checker test_demo.txt
+kv_checker test/test_demo.txt
 
 ```
